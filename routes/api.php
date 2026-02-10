@@ -16,18 +16,13 @@ use Illuminate\Support\Facades\Route;
 Route::post('/register', [AuthController::class, 'register']);
 Route::post('/login', [AuthController::class, 'login']);
 
-// Categories (public)
-Route::get('/categories', [CategoryController::class, 'index']);
-Route::get('/categories/{category}', [CategoryController::class, 'show']);
+// Categories, Exercises, Routines (solo lectura)
+Route::apiResource('categories', CategoryController::class)->only(['index', 'show']);
+Route::apiResource('exercises', ExerciseController::class)->only(['index', 'show']);
+Route::apiResource('routines', RoutineController::class)->only(['index', 'show']);
+
+// Relaciones públicas
 Route::get('/categories/{category}/exercises', [CategoryController::class, 'exercises']);
-
-// Exercises (public)
-Route::get('/exercises', [ExerciseController::class, 'index']);
-Route::get('/exercises/{exercise}', [ExerciseController::class, 'show']);
-
-// Routines (public)
-Route::get('/routines', [RoutineController::class, 'index']);
-Route::get('/routines/{routine}', [RoutineController::class, 'show']);
 Route::get('/routines/{routine}/exercises', [RoutineController::class, 'exercises']);
 
 // ============================================
@@ -41,27 +36,17 @@ Route::middleware('auth:sanctum')->group(function () {
     });
     Route::post('/logout', [AuthController::class, 'logout']);
 
-    // Categories (protected)
-    Route::post('/categories', [CategoryController::class, 'store']);
-    Route::put('/categories/{category}', [CategoryController::class, 'update']);
-    Route::delete('/categories/{category}', [CategoryController::class, 'destroy']);
+    // Categories, Exercises, Routines (escritura)
+    Route::apiResource('categories', CategoryController::class)->only(['store', 'update', 'destroy']);
+    Route::apiResource('exercises', ExerciseController::class)->only(['store', 'update', 'destroy']);
+    Route::apiResource('routines', RoutineController::class)->only(['store', 'update', 'destroy']);
 
-    // Exercises (protected)
-    Route::post('/exercises', [ExerciseController::class, 'store']);
-    Route::put('/exercises/{exercise}', [ExerciseController::class, 'update']);
-    Route::delete('/exercises/{exercise}', [ExerciseController::class, 'destroy']);
-
-    // Routines (protected)
-    Route::post('/routines', [RoutineController::class, 'store']);
-    Route::put('/routines/{routine}', [RoutineController::class, 'update']);
-    Route::delete('/routines/{routine}', [RoutineController::class, 'destroy']);
+    // Routines - gestión de ejercicios
     Route::post('/routines/{routine}/exercises', [RoutineController::class, 'addExercise']);
     Route::delete('/routines/{routine}/exercises/{exercise}', [RoutineController::class, 'removeExercise']);
 
-    // My Routines (user subscriptions)
-    Route::get('/my-routines', [MyRoutineController::class, 'index']);
-    Route::post('/my-routines', [MyRoutineController::class, 'store']);
-    Route::delete('/my-routines/{routine}', [MyRoutineController::class, 'destroy']);
+    // My Routines (suscripciones del usuario)
+    Route::apiResource('my-routines', MyRoutineController::class)->only(['index', 'store', 'destroy'])->parameters(['my-routines' => 'routine']);
 });
 
 
