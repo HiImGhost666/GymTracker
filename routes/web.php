@@ -21,4 +21,10 @@ Route::middleware('auth')->group(function () {
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 });
 
+Route::get('/test', function () {
+    return response()->json([
+        'message' => '¡Hola desde la ruta de prueba!',
+    ]);
+});
+
 require __DIR__.'/auth.php';

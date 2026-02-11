@@ -94,27 +94,52 @@ class RoutineController extends Controller
 
     /**
      * POST /api/routines/{routine}/exercises
-     * Añade un ejercicio a una rutina (requiere token).
+     * Añade ejercicios a una rutina (requiere token).
+     * Acepta un solo ejercicio o un array de ejercicios.
      */
     public function addExercise(Request $request, Routine $routine): JsonResponse
     {
-        $validated = $request->validate([
-            'exercise_id' => ['required', 'exists:exercises,id'],
-            'reps' => ['required', 'integer', 'min:1'],
-            'sets' => ['required', 'integer', 'min:1'],
-            'rest_seconds' => ['nullable', 'integer', 'min:0'],
-            'sequence' => ['nullable', 'integer', 'min:1'],
-        ]);
+        // Soportar tanto un ejercicio individual como un array de ejercicios
+        if ($request->has('exercises')) {
+            $validated = $request->validate([
+                'exercises' => ['required', 'array', 'min:1'],
+                'exercises.*.exercise_id' => ['required', 'exists:exercises,id'],
+                'exercises.*.reps' => ['required', 'integer', 'min:1'],
+                'exercises.*.sets' => ['required', 'integer', 'min:1'],
+                'exercises.*.rest_seconds' => ['nullable', 'integer', 'min:0'],
+                'exercises.*.sequence' => ['nullable', 'integer', 'min:1'],
+            ]);
 
-        // Calcular sequence si no se proporciona
-        $sequence = $validated['sequence'] ?? ($routine->exercises()->count() + 1);
+            // Eliminar ejercicios anteriores y añadir los nuevos
+            $routine->exercises()->detach();
 
-        $routine->exercises()->attach($validated['exercise_id'], [
-            'sequence' => $sequence,
-            'target_sets' => $validated['sets'],
-            'target_reps' => $validated['reps'],
-            'rest_seconds' => $validated['rest_seconds'] ?? 60,
-        ]);
+            $sequence = 1;
+            foreach ($validated['exercises'] as $exercise) {
+                $routine->exercises()->attach($exercise['exercise_id'], [
+                    'sequence' => $exercise['sequence'] ?? $sequence++,
+                    'target_sets' => $exercise['sets'],
+                    'target_reps' => $exercise['reps'],
+                    'rest_seconds' => $exercise['rest_seconds'] ?? 60,
+                ]);
+            }
+        } else {
+            $validated = $request->validate([
+                'exercise_id' => ['required', 'exists:exercises,id'],
+                'reps' => ['required', 'integer', 'min:1'],
+                'sets' => ['required', 'integer', 'min:1'],
+                'rest_seconds' => ['nullable', 'integer', 'min:0'],
+                'sequence' => ['nullable', 'integer', 'min:1'],
+            ]);
+
+            $sequence = $validated['sequence'] ?? ($routine->exercises()->count() + 1);
+
+            $routine->exercises()->attach($validated['exercise_id'], [
+                'sequence' => $sequence,
+                'target_sets' => $validated['sets'],
+                'target_reps' => $validated['reps'],
+                'rest_seconds' => $validated['rest_seconds'] ?? 60,
+            ]);
+        }
 
         return response()->json(new RoutineResource($routine->load('exercises')), 201);
     }
